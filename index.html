@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phasmophobia Ghost Helper</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Phasmophobia Ghost Helper</h1>
+            <p>Phasmophobia Ghost Helper is a tool that helps you find the perfect ghost based on evidence and characteristics.</p>
+        </header>
+
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" id="ghostSearch" placeholder="Search for ghost types...">
+            </div>
+        </div>
+
+        <div class="smudge-timer-sidebar">
+            <div class="smudge-timer-sidebar-header">
+                <h2>Smudge Timer</h2>
+            </div>
+            <div class="smudge-timer-sidebar-content">
+                <div class="timer-display">
+                    <div class="timer-time" id="timerDisplay">03:00</div>
+                    <div class="timer-status" id="timerStatus">Ready to start</div>
+                </div>
+
+                <div class="timer-controls">
+                    <button class="timer-btn timer-start" id="timerStart">Start</button>
+                    <button class="timer-btn timer-reset" id="timerReset">Reset</button>
+                </div>
+
+                <div class="timer-milestones">
+                    <div class="milestone-item" id="milestone60">
+                        <span class="milestone-time">60s:</span>
+                        <span class="milestone-text">Demon can hunt</span>
+                    </div>
+                    <div class="milestone-item" id="milestone90">
+                        <span class="milestone-time">90s:</span>
+                        <span class="milestone-text">All except Spirit</span>
+                    </div>
+                    <div class="milestone-item" id="milestone180">
+                        <span class="milestone-time">180s:</span>
+                        <span class="milestone-text">Spirit can hunt</span>
+                    </div>
+                </div>
+
+                <div class="next-milestone">
+                    <h4>Next Milestone:</h4>
+                    <div id="nextMilestone">Demon at 60s</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-sidebar">
+            <div class="filter-sidebar-header">
+                <h2>Filters</h2>
+            </div>
+            <div class="filter-sidebar-content">
+                <div class="sidebar-evidence-section">
+                    <h3>Evidence</h3>
+                    <div class="sidebar-evidence-grid">
+                        <label class="sidebar-evidence-item">
+                            <input type="checkbox" value="EMF 5">
+                            <span class="sidebar-evidence-name">EMF 5</span>
+                        </label>
+                        <label class="sidebar-evidence-item">
+                            <input type="checkbox" value="Spirit Box">
+                            <span class="sidebar-evidence-name">Spirit Box</span>
+                        </label>
+                        <label class="sidebar-evidence-item">
+                            <input type="checkbox" value="Ghost Writing">
+                            <span class="sidebar-evidence-name">Ghost Writing</span>
+                        </label>
+                        <label class="sidebar-evidence-item">
+                            <input type="checkbox" value="Ultraviolet">
+                            <span class="sidebar-evidence-name">Ultraviolet</span>
+                        </label>
+                        <label class="sidebar-evidence-item">
+                            <input type="checkbox" value="DOTS Projector">
+                            <span class="sidebar-evidence-name">DOTS Projector</span>
+                        </label>
+                        <label class="sidebar-evidence-item">
+                            <input type="checkbox" value="Ghost Orbs">
+                            <span class="sidebar-evidence-name">Ghost Orbs</span>
+                        </label>
+                        <label class="sidebar-evidence-item">
+                            <input type="checkbox" value="Freezing Temps">
+                            <span class="sidebar-evidence-name">Freezing Temps</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="sidebar-speed-section">
+                    <h3>Speed</h3>
+                    <div class="sidebar-speed-buttons">
+                        <button class="sidebar-speed-btn active" data-speed="all">All Ghosts</button>
+                        <button class="sidebar-speed-btn" data-speed="slow">Slow Ghosts</button>
+                        <button class="sidebar-speed-btn" data-speed="medium">Normal Speed</button>
+                        <button class="sidebar-speed-btn" data-speed="fast">Fast Ghosts</button>
+                    </div>
+                </div>
+
+                <button class="sidebar-clear-btn" id="clearFilters">Clear All Filters</button>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div class="results-header">
+                <h2>Filtered Results</h2>
+                <div id="resultCount">0 ghosts found</div>
+            </div>
+            <div class="ghost-grid" id="ghostResults">
+            </div>
+        </div>
+
+        <div class="all-ghosts-section">
+            <h2>All Ghosts</h2>
+            <div class="ghost-grid" id="allGhosts">
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
