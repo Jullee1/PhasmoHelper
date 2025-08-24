@@ -296,9 +296,13 @@ const allGhosts = document.getElementById('allGhosts');
 const resultCount = document.getElementById('resultCount');
 const clearFiltersBtn = document.getElementById('clearFilters');
 
-const evidenceCheckboxes = document.querySelectorAll('.sidebar-evidence-grid input[type="checkbox"]');
+const evidenceItems = document.querySelectorAll('.sidebar-evidence-grid .sidebar-evidence-item');
 
 const speedFilterBtns = document.querySelectorAll('.sidebar-speed-buttons .sidebar-speed-btn');
+
+const minSanityInput = document.getElementById('minSanity');
+const maxSanityInput = document.getElementById('maxSanity');
+const sanityRangeDisplay = document.getElementById('sanityRangeDisplay');
 
 document.addEventListener('DOMContentLoaded', function() {
     displayAllGhosts();
@@ -308,26 +312,63 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupEventListeners() {
     ghostSearch.addEventListener('input', performSearch);
     
-    evidenceCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', filterGhosts);
+    evidenceItems.forEach(item => {
+        item.addEventListener('click', () => handleEvidenceClick(item));
     });
     
     speedFilterBtns.forEach(btn => {
         btn.addEventListener('click', () => handleSpeedFilter(btn));
     });
     
+    minSanityInput.addEventListener('input', handleSanityRangeChange);
+    maxSanityInput.addEventListener('input', handleSanityRangeChange);
+    
     clearFiltersBtn.addEventListener('click', () => {
         ghostSearch.value = '';
         
-        evidenceCheckboxes.forEach(checkbox => {
-            checkbox.checked = false;
+        evidenceItems.forEach(item => {
+            item.setAttribute('data-state', 'none');
         });
         
         speedFilterBtns.forEach(btn => btn.classList.remove('active'));
         document.querySelector('.sidebar-speed-buttons .sidebar-speed-btn[data-speed="all"]').classList.add('active');
         
-        filterGhosts();
+        minSanityInput.value = 0;
+        maxSanityInput.value = 100;
+        sanityRangeDisplay.textContent = '0 - 100';
+        
+        // Remove highlighting from all ghost cards
+        const allGhostCards = document.querySelectorAll('.ghost-card');
+        allGhostCards.forEach(card => {
+            card.classList.remove('highlighted');
+        });
+        
+        // Clear filtered results
+        ghostResults.innerHTML = '';
+        resultCount.textContent = '0 ghosts found';
+        
+        // Show all ghosts without highlighting
+        displayAllGhosts();
     });
+}
+
+function handleEvidenceClick(item) {
+    const currentState = item.getAttribute('data-state');
+    let newState;
+    
+    // Three-state toggle: none -> selected -> ruled-out -> none
+    if (currentState === 'none') {
+        newState = 'selected';
+    } else if (currentState === 'selected') {
+        newState = 'ruled-out';
+    } else {
+        newState = 'none';
+    }
+    
+    item.setAttribute('data-state', newState);
+    
+    // Filter ghosts based on new evidence state
+    filterGhosts();
 }
 
 function displayAllGhosts() {
@@ -432,29 +473,52 @@ function createGhostCard(ghost) {
 }
 
 function filterGhosts() {
-    const selectedEvidence = Array.from(evidenceCheckboxes)
-        .filter(checkbox => checkbox.checked)
-        .map(checkbox => checkbox.value);
+    const selectedEvidence = Array.from(evidenceItems)
+        .filter(item => item.getAttribute('data-state') === 'selected')
+        .map(item => item.getAttribute('data-evidence'));
     
-    if (selectedEvidence.length === 0) {
-        ghostResults.innerHTML = '';
-        resultCount.textContent = '0 ghosts found';
-        updateSpeedFilterAvailability('all');
-        updateEvidenceCheckboxAvailability([]);
-        return;
+    const ruledOutEvidence = Array.from(evidenceItems)
+        .filter(item => item.getAttribute('data-state') === 'ruled-out')
+        .map(item => item.getAttribute('data-evidence'));
+    
+    const minSanity = parseInt(minSanityInput.value) || 0;
+    const maxSanity = parseInt(maxSanityInput.value) || 100;
+    
+    let filteredGhosts;
+    
+    if (selectedEvidence.length === 0 && ruledOutEvidence.length === 0) {
+        // If no evidence selected or ruled out, filter only by sanity
+        filteredGhosts = ghostData.filter(ghost => {
+            return ghost.huntSanity >= minSanity && ghost.huntSanity <= maxSanity;
+        });
+        
+        // Clear all highlighting when no evidence filters are active
+        clearAllGhostHighlighting();
+    } else {
+        // Filter by evidence, ruled out evidence, and sanity
+        filteredGhosts = ghostData.filter(ghost => {
+            // Must have all selected evidence
+            const hasSelectedEvidence = selectedEvidence.length === 0 || 
+                selectedEvidence.every(evidence => ghost.evidence.includes(evidence));
+            
+            // Must NOT have any ruled out evidence
+            const hasNoRuledOutEvidence = ruledOutEvidence.length === 0 ||
+                !ruledOutEvidence.some(evidence => ghost.evidence.includes(evidence));
+            
+            const sanityMatch = ghost.huntSanity >= minSanity && ghost.huntSanity <= maxSanity;
+            
+            return hasSelectedEvidence && hasNoRuledOutEvidence && sanityMatch;
+        });
+        
+        // Highlight ghosts in allGhosts section based on evidence
+        highlightGhostsInAllSection(selectedEvidence, ruledOutEvidence);
     }
-    
-    const filteredGhosts = ghostData.filter(ghost => {
-        return selectedEvidence.every(evidence => 
-            ghost.evidence.includes(evidence)
-        );
-    });
     
     displayFilteredResults(filteredGhosts);
     
     updateSpeedFilterAvailability(filteredGhosts);
     
-    updateEvidenceCheckboxAvailability(selectedEvidence);
+    updateEvidenceItemAvailability(selectedEvidence, ruledOutEvidence);
 }
 
 function displayFilteredResults(ghosts) {
@@ -480,24 +544,24 @@ function displayFilteredResults(ghosts) {
 
 function performSearch() {
     const searchTerm = ghostSearch.value.toLowerCase().trim();
+    const minSanity = parseInt(minSanityInput.value) || 0;
+    const maxSanity = parseInt(maxSanityInput.value) || 100;
     
     if (searchTerm === '') {
-        // Remove all highlighting when search is cleared
-        const allGhostCards = allGhosts.querySelectorAll('.ghost-card');
-        allGhostCards.forEach(card => {
-            card.classList.remove('highlighted');
-        });
-        
+        // When search is cleared, reapply evidence filters
         filterGhosts();
         return;
     }
     
-    const searchResults = ghostData.filter(ghost => 
-        ghost.name.toLowerCase().includes(searchTerm)
-    );
+    const searchResults = ghostData.filter(ghost => {
+        const nameMatch = ghost.name.toLowerCase().includes(searchTerm);
+        const sanityMatch = ghost.huntSanity >= minSanity && ghost.huntSanity <= maxSanity;
+        return nameMatch && sanityMatch;
+    });
     
     displayFilteredResults(searchResults);
     
+    // Highlight search results while preserving evidence highlighting
     highlightSearchResults(searchTerm);
 }
 
@@ -506,13 +570,14 @@ function highlightSearchResults(searchTerm) {
     
     allGhostCards.forEach(card => {
         const ghostName = card.querySelector('.ghost-name').textContent.toLowerCase();
-        
         const isMatch = ghostName.includes(searchTerm);
         
         if (isMatch) {
-            card.classList.add('highlighted');
+            // Add search highlighting without removing evidence highlighting
+            card.classList.add('search-highlighted');
         } else {
-            card.classList.remove('highlighted');
+            // Remove search highlighting but keep evidence highlighting
+            card.classList.remove('search-highlighted');
         }
     });
 }
@@ -526,38 +591,70 @@ function handleSpeedFilter(clickedBtn) {
     applySpeedFilter(selectedSpeed);
 }
 
+function handleSanityRangeChange() {
+    const minSanity = parseInt(minSanityInput.value) || 0;
+    const maxSanity = parseInt(maxSanityInput.value) || 100;
+    
+    // Ensure min doesn't exceed max
+    if (minSanity > maxSanity) {
+        if (this === minSanityInput) {
+            maxSanityInput.value = minSanity;
+        } else {
+            minSanityInput.value = maxSanity;
+        }
+    }
+    
+    // Update display
+    const finalMin = parseInt(minSanityInput.value) || 0;
+    const finalMax = parseInt(maxSanityInput.value) || 100;
+    sanityRangeDisplay.textContent = `${finalMin} - ${finalMax}`;
+    
+    // Always filter ghosts when sanity changes
+    filterGhosts();
+}
+
 function applySpeedFilter(speed) {
     const allGhostCards = allGhosts.querySelectorAll('.ghost-card');
+    const minSanity = parseInt(minSanityInput.value) || 0;
+    const maxSanity = parseInt(maxSanityInput.value) || 100;
     
     allGhostCards.forEach(card => {
         const ghostName = card.querySelector('.ghost-name').textContent;
         const ghost = ghostData.find(g => g.name === ghostName);
         let shouldShow = true;
         
-        if (speed !== 'all' && ghost) {
-            if (speed === 'slow') {
-                shouldShow = ghost.speed < 1.7 || 
-                            (ghost.speedDetails && ghost.speedDetails.special && 
-                             (ghost.speedDetails.special.includes('1.0') || 
-                              ghost.speedDetails.special.includes('1.44') ||
-                              ghost.speedDetails.special.includes('0.4'))) ||
-                            (ghost.speedDetails && ghost.speedDetails.normal && 
-                             ghost.speedDetails.normal.includes('1.0'));
-            } else if (speed === 'medium') {
-                shouldShow = ghost.speed === 1.7 && 
-                            (!ghost.speedDetails || 
-                             !ghost.speedDetails.special || 
-                             (!ghost.speedDetails.special.includes('2.5') &&
-                              !ghost.speedDetails.special.includes('2.7') &&
-                              !ghost.speedDetails.special.includes('2.75') &&
-                              !ghost.speedDetails.special.includes('3.0')));
-            } else if (speed === 'fast') {
-                shouldShow = ghost.speed > 1.7 || 
-                            (ghost.speedDetails && ghost.speedDetails.special && 
-                             (ghost.speedDetails.special.includes('2.5') || 
-                              ghost.speedDetails.special.includes('2.7') ||
-                              ghost.speedDetails.special.includes('2.75') ||
-                              ghost.speedDetails.special.includes('3.0')));
+        if (ghost) {
+            // Check speed filter
+            if (speed !== 'all') {
+                if (speed === 'slow') {
+                    shouldShow = ghost.speed < 1.7 || 
+                                (ghost.speedDetails && ghost.speedDetails.special && 
+                                 (ghost.speedDetails.special.includes('1.0') || 
+                                  ghost.speedDetails.special.includes('1.44') ||
+                                  ghost.speedDetails.special.includes('0.4'))) ||
+                                (ghost.speedDetails && ghost.speedDetails.normal && 
+                                 ghost.speedDetails.normal.includes('1.0'));
+                } else if (speed === 'medium') {
+                    shouldShow = ghost.speed === 1.7 && 
+                                (!ghost.speedDetails || 
+                                 !ghost.speedDetails.special || 
+                                 (!ghost.speedDetails.special.includes('2.5') &&
+                                  !ghost.speedDetails.special.includes('2.7') &&
+                                  !ghost.speedDetails.special.includes('2.75') &&
+                                  !ghost.speedDetails.special.includes('3.0')));
+                } else if (speed === 'fast') {
+                    shouldShow = ghost.speed > 1.7 || 
+                                (ghost.speedDetails && ghost.speedDetails.special && 
+                                 (ghost.speedDetails.special.includes('2.5') || 
+                                  ghost.speedDetails.special.includes('2.7') ||
+                                  ghost.speedDetails.special.includes('2.75') ||
+                                  ghost.speedDetails.special.includes('3.0')));
+                }
+            }
+            
+            // Check sanity filter
+            if (shouldShow) {
+                shouldShow = ghost.huntSanity >= minSanity && ghost.huntSanity <= maxSanity;
             }
         }
         
@@ -576,7 +673,10 @@ function applySpeedFilter(speed) {
 }
 
 function hasActiveEvidenceFilters() {
-    return Array.from(evidenceCheckboxes).some(checkbox => checkbox.checked);
+    return Array.from(evidenceItems).some(item => 
+        item.getAttribute('data-state') === 'selected' || 
+        item.getAttribute('data-state') === 'ruled-out'
+    );
 }
 
 function updateSpeedFilterAvailability(filteredGhosts) {
@@ -639,30 +739,76 @@ function updateSpeedFilterAvailability(filteredGhosts) {
     });
 }
 
-function updateEvidenceCheckboxAvailability(selectedEvidence) {
-    evidenceCheckboxes.forEach(checkbox => {
-        const evidenceType = checkbox.value;
+function updateEvidenceItemAvailability(selectedEvidence, ruledOutEvidence) {
+    evidenceItems.forEach(item => {
+        const evidenceType = item.getAttribute('data-evidence');
+        const currentState = item.getAttribute('data-state');
         
-        if (selectedEvidence.length === 0) {
-            checkbox.disabled = false;
-            checkbox.parentElement.style.opacity = '1';
-            checkbox.parentElement.style.cursor = 'pointer';
-        } else {
-            const canCombine = ghostData.some(ghost => {
-                const requiredEvidence = [...selectedEvidence, evidenceType];
-                return requiredEvidence.every(evidence => 
-                    ghost.evidence.includes(evidence)
-                );
-            });
+        // If no evidence is selected or ruled out, all items are available
+        if (selectedEvidence.length === 0 && ruledOutEvidence.length === 0) {
+            item.style.opacity = '1';
+            item.style.cursor = 'pointer';
+            return;
+        }
+        
+        // Check if this evidence can be combined with current selection
+        const canCombine = ghostData.some(ghost => {
+            // Must have all selected evidence
+            const hasSelectedEvidence = selectedEvidence.length === 0 || 
+                selectedEvidence.every(evidence => ghost.evidence.includes(evidence));
             
-            if (canCombine) {
-                checkbox.disabled = false;
-                checkbox.parentElement.style.opacity = '1';
-                checkbox.parentElement.style.cursor = 'pointer';
+            // Must NOT have any ruled out evidence
+            const hasNoRuledOutEvidence = ruledOutEvidence.length === 0 ||
+                !ruledOutEvidence.some(evidence => ghost.evidence.includes(evidence));
+            
+            // If this evidence is already selected or ruled out, it's always available
+            if (currentState === 'selected' || currentState === 'ruled-out') {
+                return hasSelectedEvidence && hasNoRuledOutEvidence;
+            }
+            
+            // Check if adding this evidence would still result in valid ghosts
+            const testEvidence = [...selectedEvidence, evidenceType];
+            return testEvidence.every(evidence => ghost.evidence.includes(evidence)) && 
+                   hasNoRuledOutEvidence;
+        });
+        
+        if (canCombine) {
+            item.style.opacity = '1';
+            item.style.cursor = 'pointer';
+        } else {
+            item.style.opacity = '0.4';
+            item.style.cursor = 'not-allowed';
+        }
+    });
+}
+
+function clearAllGhostHighlighting() {
+    const allGhostCards = document.querySelectorAll('.ghost-card');
+    allGhostCards.forEach(card => {
+        card.classList.remove('highlighted');
+        card.classList.remove('search-highlighted');
+    });
+}
+
+function highlightGhostsInAllSection(selectedEvidence, ruledOutEvidence) {
+    const allGhostCards = document.querySelectorAll('#allGhosts .ghost-card');
+    
+    allGhostCards.forEach(card => {
+        const ghostName = card.querySelector('.ghost-name').textContent;
+        const ghost = ghostData.find(g => g.name === ghostName);
+        
+        if (ghost) {
+            // Check if this ghost matches the evidence criteria
+            const hasSelectedEvidence = selectedEvidence.length === 0 || 
+                selectedEvidence.every(evidence => ghost.evidence.includes(evidence));
+            
+            const hasNoRuledOutEvidence = ruledOutEvidence.length === 0 ||
+                !ruledOutEvidence.some(evidence => ghost.evidence.includes(evidence));
+            
+            if (hasSelectedEvidence && hasNoRuledOutEvidence) {
+                card.classList.add('highlighted');
             } else {
-                checkbox.disabled = true;
-                checkbox.parentElement.style.opacity = '0.4';
-                checkbox.parentElement.style.cursor = 'not-allowed';
+                card.classList.remove('highlighted');
             }
         }
     });

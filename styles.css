@@ -149,6 +149,19 @@ header p {
     opacity: 1;
 }
 
+.ghost-card.search-highlighted {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+/* When both highlighted and search-highlighted, evidence highlighting takes precedence */
+.ghost-card.highlighted.search-highlighted {
+    border-color: #60a5fa;
+    background: rgba(96, 165, 250, 0.15);
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.4);
+}
+
 .ghost-header {
     margin-bottom: 20px;
     text-align: center;
@@ -576,6 +589,7 @@ header p {
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
 }
 
 .sidebar-evidence-item:hover {
@@ -584,27 +598,60 @@ header p {
     transform: translateX(2px);
 }
 
-.sidebar-evidence-item:has(input:disabled) {
-    opacity: 0.4;
-    cursor: not-allowed;
-    background: rgba(255, 255, 255, 0.02);
-    border-color: rgba(255, 255, 255, 0.03);
+.sidebar-evidence-item[data-state="none"]:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
 }
 
-.sidebar-evidence-item:has(input:disabled):hover {
-    background: rgba(255, 255, 255, 0.02);
-    border-color: rgba(255, 255, 255, 0.03);
+
+
+/* Evidence item states */
+.sidebar-evidence-item[data-state="selected"] {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: rgba(34, 197, 94, 0.4);
+    color: #22c55e;
+}
+
+.sidebar-evidence-item[data-state="selected"]::before {
+    content: "✓";
+    position: absolute;
+    left: 12px;
+    color: #22c55e;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.sidebar-evidence-item[data-state="ruled-out"] {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.sidebar-evidence-item[data-state="ruled-out"]::before {
+    content: "✗";
+    position: absolute;
+    left: 12px;
+    color: #ef4444;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.sidebar-evidence-item[data-state="selected"] .sidebar-evidence-name,
+.sidebar-evidence-item[data-state="ruled-out"] .sidebar-evidence-name {
+    margin-left: 20px;
+}
+
+/* Disabled state styling */
+.sidebar-evidence-item[style*="opacity: 0.4"] {
+    cursor: not-allowed !important;
+}
+
+.sidebar-evidence-item[style*="opacity: 0.4"]:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.05);
     transform: none;
-}
-
-.sidebar-evidence-item:has(input:disabled) .sidebar-evidence-name {
-    color: #6b7280;
-}
-
-.sidebar-evidence-item input[type="checkbox"] {
-    width: 14px;
-    height: 14px;
-    accent-color: #60a5fa;
 }
 
 .sidebar-evidence-name {
@@ -671,6 +718,89 @@ header p {
     border-color: rgba(255, 255, 255, 0.03);
     color: #6b7280;
     transform: none;
+}
+
+.sidebar-sanity-section {
+    margin-bottom: 20px;
+}
+
+.sidebar-sanity-section h3 {
+    color: #60a5fa;
+    font-size: 1rem;
+    margin-bottom: 15px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sanity-range-container {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.sanity-range-inputs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.sanity-input-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sanity-input-group label {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sanity-input {
+    width: 100%;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.sanity-input:focus {
+    outline: none;
+    border-color: #60a5fa;
+    background: rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+.sanity-input::-webkit-inner-spin-button,
+.sanity-input::-webkit-outer-spin-button {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.sanity-range-display {
+    text-align: center;
+    padding: 10px;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 6px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+#sanityRangeDisplay {
+    color: #60a5fa;
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
 }
 
 .sidebar-clear-btn {

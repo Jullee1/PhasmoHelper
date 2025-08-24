@@ -65,34 +65,27 @@
                 <div class="sidebar-evidence-section">
                     <h3>Evidence</h3>
                     <div class="sidebar-evidence-grid">
-                        <label class="sidebar-evidence-item">
-                            <input type="checkbox" value="EMF 5">
+                        <div class="sidebar-evidence-item" data-evidence="EMF 5" data-state="none">
                             <span class="sidebar-evidence-name">EMF 5</span>
-                        </label>
-                        <label class="sidebar-evidence-item">
-                            <input type="checkbox" value="Spirit Box">
+                        </div>
+                        <div class="sidebar-evidence-item" data-evidence="Spirit Box" data-state="none">
                             <span class="sidebar-evidence-name">Spirit Box</span>
-                        </label>
-                        <label class="sidebar-evidence-item">
-                            <input type="checkbox" value="Ghost Writing">
+                        </div>
+                        <div class="sidebar-evidence-item" data-evidence="Ghost Writing" data-state="none">
                             <span class="sidebar-evidence-name">Ghost Writing</span>
-                        </label>
-                        <label class="sidebar-evidence-item">
-                            <input type="checkbox" value="Ultraviolet">
+                        </div>
+                        <div class="sidebar-evidence-item" data-evidence="Ultraviolet" data-state="none">
                             <span class="sidebar-evidence-name">Ultraviolet</span>
-                        </label>
-                        <label class="sidebar-evidence-item">
-                            <input type="checkbox" value="DOTS Projector">
+                        </div>
+                        <div class="sidebar-evidence-item" data-evidence="DOTS Projector" data-state="none">
                             <span class="sidebar-evidence-name">DOTS Projector</span>
-                        </label>
-                        <label class="sidebar-evidence-item">
-                            <input type="checkbox" value="Ghost Orbs">
+                        </div>
+                        <div class="sidebar-evidence-item" data-evidence="Ghost Orbs" data-state="none">
                             <span class="sidebar-evidence-name">Ghost Orbs</span>
-                        </label>
-                        <label class="sidebar-evidence-item">
-                            <input type="checkbox" value="Freezing Temps">
+                        </div>
+                        <div class="sidebar-evidence-item" data-evidence="Freezing Temps" data-state="none">
                             <span class="sidebar-evidence-name">Freezing Temps</span>
-                        </label>
+                        </div>
                     </div>
                 </div>
 
@@ -103,6 +96,25 @@
                         <button class="sidebar-speed-btn" data-speed="slow">Slow Ghosts</button>
                         <button class="sidebar-speed-btn" data-speed="medium">Normal Speed</button>
                         <button class="sidebar-speed-btn" data-speed="fast">Fast Ghosts</button>
+                    </div>
+                </div>
+
+                <div class="sidebar-sanity-section">
+                    <h3>Hunt Sanity Range</h3>
+                    <div class="sanity-range-container">
+                        <div class="sanity-range-inputs">
+                            <div class="sanity-input-group">
+                                <label for="minSanity">Min:</label>
+                                <input type="number" id="minSanity" min="0" max="100" value="0" class="sanity-input">
+                            </div>
+                            <div class="sanity-input-group">
+                                <label for="maxSanity">Max:</label>
+                                <input type="number" id="maxSanity" min="0" max="100" value="100" class="sanity-input">
+                            </div>
+                        </div>
+                        <div class="sanity-range-display">
+                            <span id="sanityRangeDisplay">0 - 100</span>
+                        </div>
                     </div>
                 </div>
 
