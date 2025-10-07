@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phasmophobia Journal</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Special+Elite&display=swap" rel="stylesheet">
+</head>
+<body class="theme-hunting">
+    <!-- Header -->
+    <header class="journal-header">
+        <div class="header-content">
+            <h1 class="journal-title">Phasmophobia Journal</h1>
+            <div class="header-controls">
+                <button class="header-btn" id="toggleTimer">
+                    <span class="btn-icon">⏱️</span>
+                    <span class="btn-text">Timer</span>
+                </button>
+                <button class="header-btn" id="toggleTheme">
+                    <span class="btn-icon">🌙</span>
+                    <span class="btn-text">Theme</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Journal Pages -->
+    <main class="journal-pages">
+        <!-- Left Page: Ghost Index -->
+        <section class="page page-left">
+            <div class="page-content">
+                <h2 class="page-title">Ghost Index</h2>
+                
+                <div class="search-container">
+                    <input type="text" id="ghostSearch" class="journal-search" placeholder="Search ghosts...">
+                    <span class="search-icon">🔎</span>
+                </div>
+
+                <div class="ghost-count" id="ghostCount">24 ghosts</div>
+
+                <div class="ghost-list" id="ghostList">
+                    <!-- Ghost items will be populated by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Page: Ghost Details -->
+        <section class="page page-right">
+            <div class="page-content" id="ghostDetails">
+                <div class="empty-state">
+                    <div class="empty-icon">👻</div>
+                    <h3>Select a ghost</h3>
+                    <p>Click on any ghost from the index to view details</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filter Panel (permanent right side) -->
+        <aside class="filter-panel" id="filterSidebar">
+        <div class="sidebar-header">
+            <h2>Filters</h2>
+        </div>
+        
+        <div class="sidebar-content">
+            <!-- Evidence Filter -->
+            <div class="filter-section">
+                <h3 class="filter-title">Evidence</h3>
+                <div class="filter-items" id="evidenceFilters">
+                    <div class="filter-item" data-evidence="EMF 5" data-state="none">
+                        <span class="filter-icon">⚡</span>
+                        <span class="filter-name">EMF 5</span>
+                    </div>
+                    <div class="filter-item" data-evidence="Spirit Box" data-state="none">
+                        <span class="filter-icon">📻</span>
+                        <span class="filter-name">Spirit Box</span>
+                    </div>
+                    <div class="filter-item" data-evidence="Ghost Writing" data-state="none">
+                        <span class="filter-icon">✍️</span>
+                        <span class="filter-name">Ghost Writing</span>
+                    </div>
+                    <div class="filter-item" data-evidence="Ultraviolet" data-state="none">
+                        <span class="filter-icon">🔦</span>
+                        <span class="filter-name">Ultraviolet</span>
+                    </div>
+                    <div class="filter-item" data-evidence="DOTS Projector" data-state="none">
+                        <span class="filter-icon">🌫️</span>
+                        <span class="filter-name">DOTS Projector</span>
+                    </div>
+                    <div class="filter-item" data-evidence="Ghost Orbs" data-state="none">
+                        <span class="filter-icon">🔮</span>
+                        <span class="filter-name">Ghost Orbs</span>
+                    </div>
+                    <div class="filter-item" data-evidence="Freezing Temps" data-state="none">
+                        <span class="filter-icon">❄️</span>
+                        <span class="filter-name">Freezing Temps</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Speed Filter -->
+            <div class="filter-section">
+                <h3 class="filter-title">Speed</h3>
+                <div class="filter-chips" id="speedFilters">
+                    <div class="filter-chip" data-speed="slow" data-state="none">
+                        <span class="chip-text">Slow</span>
+                    </div>
+                    <div class="filter-chip" data-speed="normal" data-state="none">
+                        <span class="chip-text">Normal</span>
+                    </div>
+                    <div class="filter-chip" data-speed="fast" data-state="none">
+                        <span class="chip-text">Fast</span>
+                    </div>
+                    <div class="filter-chip" data-speed="los" data-state="none">
+                        <span class="chip-text">Std. LOS Speed</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hunt Sanity Filter -->
+            <div class="filter-section">
+                <h3 class="filter-title">Hunt Sanity</h3>
+                <div class="filter-chips" id="sanityFilters">
+                    <div class="filter-chip" data-sanity="late" data-state="none">
+                        <span class="chip-text">Late (&lt;40%)</span>
+                    </div>
+                    <div class="filter-chip" data-sanity="normal" data-state="none">
+                        <span class="chip-text">Normal (40-49%)</span>
+                    </div>
+                    <div class="filter-chip" data-sanity="early" data-state="none">
+                        <span class="chip-text">Early (50-69%)</span>
+                    </div>
+                    <div class="filter-chip" data-sanity="very-early" data-state="none">
+                        <span class="chip-text">Very Early (≥70%)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clear Filters Button -->
+            <button class="clear-filters-btn" id="clearFilters">
+                Clear All Filters
+            </button>
+        </div>
+    </aside>
+
+    <!-- Timer Sidebar (slides in from left) -->
+    <aside class="sidebar sidebar-timer" id="timerSidebar">
+        <div class="sidebar-header">
+            <h2>Smudge Timer</h2>
+            <button class="close-btn" id="closeTimer">✕</button>
+        </div>
+        
+        <div class="sidebar-content">
+            <div class="timer-display">
+                <div class="timer-time" id="timerDisplay">03:00</div>
+                <div class="timer-status" id="timerStatus">Ready to start</div>
+            </div>
+
+            <div class="timer-controls">
+                <button class="timer-btn timer-start" id="timerStart">Start</button>
+                <button class="timer-btn timer-reset" id="timerReset">Reset</button>
+            </div>
+
+            <div class="timer-milestones">
+                <div class="milestone-item" id="milestone60">
+                    <span class="milestone-time">60s</span>
+                    <span class="milestone-text">Demon can hunt</span>
+                </div>
+                <div class="milestone-item" id="milestone90">
+                    <span class="milestone-time">90s</span>
+                    <span class="milestone-text">All except Spirit</span>
+                </div>
+                <div class="milestone-item" id="milestone180">
+                    <span class="milestone-time">180s</span>
+                    <span class="milestone-text">Spirit can hunt</span>
+                </div>
+            </div>
+
+            <div class="next-milestone">
+                <h4>Next Milestone</h4>
+                <div id="nextMilestone">Demon in 60s</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Minimized Timer -->
+    <div id="minimizedTimer" class="minimized-timer hidden" onclick="maximizeTimer()">
+        <div class="minimized-timer-content">
+            <div class="minimized-time" id="minimizedTimeDisplay">3:00</div>
+            <div class="minimized-milestones">
+                <div class="mini-milestone" data-time="60">
+                    <span class="mini-icon">👹</span>
+                    <span class="mini-label">60s</span>
+                </div>
+                <div class="mini-milestone" data-time="90">
+                    <span class="mini-icon">👻</span>
+                    <span class="mini-label">90s</span>
+                </div>
+                <div class="mini-milestone" data-time="180">
+                    <span class="mini-icon">💀</span>
+                    <span class="mini-label">180s</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Timer Overlay -->
+    <div id="floatingTimer" class="floating-timer hidden">
+        <div class="floating-timer-content">
+            <button class="floating-timer-close" onclick="closeFloatingTimer()">✕</button>
+            
+            <div id="floatingTimerDisplay" class="floating-timer-display">3:00</div>
+            <div id="floatingNextMilestone" class="floating-next-milestone">Press START or SPACE</div>
+            
+            <div class="floating-timer-milestones">
+                <div class="floating-milestone" data-time="60">
+                    <span class="milestone-icon">👹</span>
+                    <span class="milestone-label">Demon</span>
+                    <span class="milestone-time">60s</span>
+                </div>
+                <div class="floating-milestone" data-time="90">
+                    <span class="milestone-icon">👻</span>
+                    <span class="milestone-label">All except Spirit</span>
+                    <span class="milestone-time">90s</span>
+                </div>
+                <div class="floating-milestone" data-time="180">
+                    <span class="milestone-icon">💀</span>
+                    <span class="milestone-label">Spirit</span>
+                    <span class="milestone-time">180s</span>
+                </div>
+            </div>
+            
+            <div class="floating-timer-controls">
+                <button id="floatingStartBtn" onclick="floatingStartTimer()" class="floating-btn floating-start-btn">
+                    <span class="btn-icon">▶</span> Start
+                </button>
+                <button id="floatingPauseBtn" onclick="floatingPauseTimer()" class="floating-btn floating-pause-btn" disabled>
+                    <span class="btn-icon">⏸</span> Pause
+                </button>
+                <button id="floatingResetBtn" onclick="floatingResetTimer()" class="floating-btn floating-reset-btn">
+                    <span class="btn-icon">↻</span> Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
