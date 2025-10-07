@@ -755,9 +755,9 @@ function setupEventListeners() {
         chip.addEventListener('click', () => toggleFilter(chip, 'speed'));
     });
     
-    // Sanity filters
+    // Sanity filters (radio button style - only one can be selected)
     document.querySelectorAll('#sanityFilters .filter-chip').forEach(chip => {
-        chip.addEventListener('click', () => toggleFilter(chip, 'sanity'));
+        chip.addEventListener('click', () => toggleSanityFilter(chip));
     });
     
     // Clear filters
@@ -886,6 +886,30 @@ function toggleFilter(element, type) {
     // Update filter state
     const key = element.dataset[type];
     filters[type][key] = newState;
+    
+    applyFilters();
+}
+
+function toggleSanityFilter(element) {
+    const currentState = element.dataset.state;
+    const sanityKey = element.dataset.sanity;
+    
+    // If already selected, deselect it
+    if (currentState === 'include') {
+        element.dataset.state = 'none';
+        filters.sanity[sanityKey] = 'none';
+    } else {
+        // Deselect all other sanity filters
+        document.querySelectorAll('#sanityFilters .filter-chip').forEach(chip => {
+            chip.dataset.state = 'none';
+            const key = chip.dataset.sanity;
+            filters.sanity[key] = 'none';
+        });
+        
+        // Select this one
+        element.dataset.state = 'include';
+        filters.sanity[sanityKey] = 'include';
+    }
     
     applyFilters();
 }
