@@ -33,9 +33,11 @@
                 <h2 class="page-title">Ghost Index</h2>
                 
                 <div class="search-container">
-                    <input type="text" id="ghostSearch" class="journal-search" placeholder="Search ghosts...">
-                    <span class="search-icon">🔎</span>
+                    <input type="text" id="ghostSearch" class="journal-search" placeholder="Ask me anything... e.g. 'Which ghosts can't turn off the breaker?'">
+                    <span class="search-icon">🤖</span>
+                    <button class="clear-search-btn" id="clearSearch" style="display: none;">✕</button>
                 </div>
+                <div id="searchAnswer" class="search-answer" style="display: none;"></div>
 
                 <div class="ghost-count" id="ghostCount">24 ghosts</div>
 

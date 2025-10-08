@@ -739,10 +739,16 @@ function setupEventListeners() {
         document.getElementById('timerSidebar').classList.remove('open');
     });
     
-    // Search
+    // AI Search
     document.getElementById('ghostSearch').addEventListener('input', (e) => {
-        filters.search = e.target.value.toLowerCase();
-        applyFilters();
+        const query = e.target.value;
+        handleAISearch(query);
+    });
+    
+    // Clear search button
+    document.getElementById('clearSearch').addEventListener('click', () => {
+        document.getElementById('ghostSearch').value = '';
+        handleAISearch('');
     });
     
     // Evidence filters
@@ -859,6 +865,334 @@ function loadTheme() {
         currentTheme = saved;
         applyTheme();
     }
+}
+
+// ========================================
+// AI SEARCH FUNCTIONALITY
+// ========================================
+function handleAISearch(query) {
+    const searchAnswerEl = document.getElementById('searchAnswer');
+    const clearBtn = document.getElementById('clearSearch');
+    
+    // Show/hide clear button
+    clearBtn.style.display = query ? 'flex' : 'none';
+    
+    if (!query || query.trim().length < 3) {
+        searchAnswerEl.style.display = 'none';
+        renderGhostList(ghostData);
+        return;
+    }
+    
+    const lowerQuery = query.toLowerCase();
+    
+    // Try to understand the question and find relevant ghosts
+    const result = analyzeQuery(lowerQuery);
+    
+    if (result.ghosts.length > 0) {
+        // Show answer box
+        searchAnswerEl.style.display = 'block';
+        searchAnswerEl.innerHTML = `
+            <div class="search-answer-text">
+                <strong>🤖 Answer:</strong> ${result.answer}
+            </div>
+            <div class="search-answer-ghosts">
+                ${result.ghosts.map(ghost => `
+                    <div class="search-answer-ghost" onclick="selectGhost('${ghost.name}')">
+                        ${ghost.name}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        
+        // Filter ghost list to matching ghosts
+        renderGhostList(result.ghosts);
+    } else {
+        // No matches found
+        searchAnswerEl.style.display = 'block';
+        searchAnswerEl.innerHTML = `
+            <div class="search-answer-text">
+                <strong>🤖 Answer:</strong> I couldn't find any ghosts matching that query. Try asking about:
+                <br>• <strong>Evidence:</strong> "EMF 5", "Spirit Box", "Ultraviolet", "Ghost Writing", "Freezing Temps", "DOTS", "Ghost Orbs"
+                <br>• <strong>Speed:</strong> "Fast ghosts", "Slow ghosts", "3.0 m/s", "Variable speed"
+                <br>• <strong>Behavior:</strong> "Turn off lights", "Close doors", "Salt interaction", "Teleport"
+                <br>• <strong>Hunt timing:</strong> "Early hunt", "Late hunt", "Any sanity"
+                <br>• <strong>Smudge timing:</strong> "180 seconds", "60 seconds", "90 seconds"
+                <br>• Or just search by <strong>ghost name</strong>!
+            </div>
+        `;
+        renderGhostList(ghostData);
+    }
+}
+
+function analyzeQuery(query) {
+    let matchingGhosts = [];
+    let answer = '';
+    
+    // BREAKER QUESTIONS
+    if (query.includes('cannot') || query.includes("can't") || query.includes('can not')) {
+        if (query.includes('turn off') && query.includes('breaker')) {
+            matchingGhosts = ghostData.filter(g => 
+                g.behavior.toLowerCase().includes('cannot') && 
+                g.behavior.toLowerCase().includes('breaker')
+            );
+            answer = `Jinn cannot turn off the breaker. Hantu cannot turn ON the breaker.`;
+        } else if (query.includes('turn on') && query.includes('breaker')) {
+            matchingGhosts = ghostData.filter(g => 
+                g.behavior.toLowerCase().includes('cannot turn on the breaker')
+            );
+            answer = `Hantu cannot turn on the breaker.`;
+        } else if (query.includes('light') || query.includes('lights')) {
+            matchingGhosts = ghostData.filter(g => 
+                g.behavior.toLowerCase().includes('cannot') && 
+                g.behavior.toLowerCase().includes('light')
+            );
+            answer = `Mare cannot turn on lights. Onryo cannot light fire sources.`;
+        }
+    }
+    
+    // SALT QUESTIONS
+    else if (query.includes('salt')) {
+        if (query.includes('not') || query.includes('no') || query.includes("doesn't") || query.includes('dont')) {
+            matchingGhosts = ghostData.filter(g => 
+                g.behavior.toLowerCase().includes('salt') && 
+                (g.behavior.toLowerCase().includes('will not') || g.behavior.toLowerCase().includes('does not'))
+            );
+            answer = `Wraith will not touch or interact with salt in any way.`;
+        }
+    }
+    
+    // SPEED QUESTIONS
+    else if (query.includes('fast') || query.includes('speed') || query.includes('slow') || query.includes('quick') || query.includes('hunt speed')) {
+        if (query.includes('fastest') || query.includes('very fast') || query.includes('3.0')) {
+            // Find ghosts that can reach the highest speeds
+            matchingGhosts = ghostData.filter(g => {
+                const behavior = g.behavior.toLowerCase();
+                const behaviorPoints = g.behaviorPoints.map(bp => bp.toLowerCase());
+                const special = g.speedDetails?.special?.toLowerCase() || '';
+                
+                return behavior.includes('3.0') || special.includes('3.0') ||
+                       behaviorPoints.some(bp => bp.includes('3.0'));
+            });
+            if (matchingGhosts.length > 0) {
+                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+                answer = `The fastest ghosts can reach 3.0 m/s: ${ghostNames}. Revenant (3.0 m/s when chasing), Deogen (3.0 m/s when far from target).`;
+            }
+        } else if (query.includes('fast') || query.includes('quick') || query.includes('2.5') || query.includes('2.7')) {
+            // Find ghosts that can reach fast speeds
+            matchingGhosts = ghostData.filter(g => {
+                const behavior = g.behavior.toLowerCase();
+                const behaviorPoints = g.behaviorPoints.map(bp => bp.toLowerCase());
+                const special = g.speedDetails?.special?.toLowerCase() || '';
+                
+                return behavior.includes('2.5') || behavior.includes('2.7') || behavior.includes('2.75') || 
+                       behavior.includes('3.0') || special.includes('2.5') || special.includes('2.7') || 
+                       special.includes('2.75') || special.includes('3.0') ||
+                       behaviorPoints.some(bp => bp.includes('2.5') || bp.includes('2.7') || bp.includes('2.75') || bp.includes('3.0'));
+            });
+            if (matchingGhosts.length > 0) {
+                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+                answer = `These ghosts can reach fast speeds: ${ghostNames}. Revenant (3.0 m/s), Hantu (2.7 m/s), Jinn (2.5 m/s), Raiju (2.5 m/s), Moroi (2.25 m/s), Thaye (2.75 m/s), Deogen (3.0 m/s).`;
+            }
+        } else if (query.includes('slow') || query.includes('1.0') || query.includes('1.5') || query.includes('1.4') || query.includes('0.4')) {
+            // Find ghosts that can move slow
+            matchingGhosts = ghostData.filter(g => {
+                const behavior = g.behavior.toLowerCase();
+                const behaviorPoints = g.behaviorPoints.map(bp => bp.toLowerCase());
+                const special = g.speedDetails?.special?.toLowerCase() || '';
+                
+                return behavior.includes('1.0') || behavior.includes('1.5') || behavior.includes('1.4') || 
+                       behavior.includes('0.4') || special.includes('1.0') || special.includes('1.5') || 
+                       special.includes('1.4') || special.includes('0.4') ||
+                       behaviorPoints.some(bp => bp.includes('1.0') || bp.includes('1.5') || bp.includes('1.4') || bp.includes('0.4'));
+            });
+            if (matchingGhosts.length > 0) {
+                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+                answer = `These ghosts can move slowly: ${ghostNames}. Revenant (1.0 m/s when not chasing), Hantu (1.4 m/s when warm), The Twins (1.5 m/s main), Moroi (1.5 m/s at high sanity), Deogen (0.4 m/s when close), Thaye (1.0 m/s when aged).`;
+            }
+        } else {
+            // General speed question
+            answer = `Ghost speeds vary: Normal ghosts move at 1.7 m/s. Variable speed ghosts include Revenant (1.0-3.0 m/s), Hantu (1.4-2.7 m/s), The Twins (1.5-1.9 m/s), Moroi (1.5-2.25 m/s), Deogen (0.4-3.0 m/s), and Thaye (1.0-2.75 m/s).`;
+        }
+    }
+    
+    // HUNT SANITY QUESTIONS
+    else if (query.includes('hunt') && (query.includes('early') || query.includes('high sanity') || query.includes('higher') || query.includes('above'))) {
+        matchingGhosts = ghostData.filter(g => g.huntSanity >= 60);
+        if (matchingGhosts.length > 0) {
+            const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+            answer = `These ghosts can hunt at higher sanity levels (60% or above): ${ghostNames}. Demon can hunt at any sanity level.`;
+        }
+    }
+    else if (query.includes('hunt') && (query.includes('low') || query.includes('late') || query.includes('below'))) {
+        matchingGhosts = ghostData.filter(g => g.huntSanity <= 40);
+        if (matchingGhosts.length > 0) {
+            const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+            answer = `These ghosts only hunt at lower sanity levels (40% or below): ${ghostNames}. Shade hunts at 35%, Revenant at 40%.`;
+        }
+    }
+    else if (query.includes('hunt') && query.includes('any') && query.includes('sanity')) {
+        matchingGhosts = ghostData.filter(g => g.huntSanity === 0 || g.behavior.toLowerCase().includes('any sanity'));
+        if (matchingGhosts.length > 0) {
+            const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+            answer = `These ghosts can hunt at any sanity level: ${ghostNames}. Demon and Moroi can hunt regardless of sanity.`;
+        }
+    }
+    
+    // DOOR QUESTIONS
+    else if (query.includes('door') || (query.includes('close') && query.includes('fully'))) {
+        if (query.includes('close') || query.includes('shut') || query.includes('fully')) {
+            matchingGhosts = ghostData.filter(g => 
+                (g.behavior.toLowerCase().includes('door') || g.behaviorPoints.some(bp => bp.toLowerCase().includes('door'))) && 
+                (g.behavior.toLowerCase().includes('close') || g.behavior.toLowerCase().includes('shut') || g.behavior.toLowerCase().includes('fully'))
+            );
+            answer = `Yurei is the only ghost that can close exit doors outside of hunts.`;
+        }
+    }
+    
+    // LIGHT/BREAKER QUESTIONS
+    else if (query.includes('light') || query.includes('breaker') || query.includes('turn') || query.includes('switch')) {
+        if (query.includes('turn') && query.includes('off')) {
+            // Ghosts that CAN turn off lights/breakers (exclude those that CANNOT)
+            matchingGhosts = ghostData.filter(g => {
+                const behavior = g.behavior.toLowerCase();
+                const behaviorPoints = g.behaviorPoints.map(bp => bp.toLowerCase());
+                
+                // Check if ghost CAN turn off (not cannot)
+                const canTurnOff = (behavior.includes('prefers turning off') || behaviorPoints.some(bp => bp.includes('prefers turning off'))) ||
+                                  (behavior.includes('more likely to turn off') || behaviorPoints.some(bp => bp.includes('more likely to turn off'))) ||
+                                  (behavior.includes('can immediately turn off') || behaviorPoints.some(bp => bp.includes('can immediately turn off')));
+                
+                // Exclude ghosts that CANNOT turn off
+                const cannotTurnOff = (behavior.includes('cannot turn off') || behaviorPoints.some(bp => bp.includes('cannot turn off'))) ||
+                                     (behavior.includes('cannot directly turn off') || behaviorPoints.some(bp => bp.includes('cannot directly turn off')));
+                
+                return canTurnOff && !cannotTurnOff;
+            });
+            
+            if (matchingGhosts.length > 0) {
+                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+                answer = `These ghosts can turn off lights or breakers: ${ghostNames}. Mare prefers turning off lights and light switches. Hantu is more likely to turn off the breaker.`;
+    } else {
+                answer = `Most ghosts can turn off lights, but Mare prefers turning off lights and light switches, while Hantu is more likely to turn off the breaker.`;
+            }
+        }
+        // Ghosts that CANNOT turn off lights/breakers
+        else if (query.includes('cannot') || query.includes('not') || query.includes('unable')) {
+            matchingGhosts = ghostData.filter(g => {
+                const behavior = g.behavior.toLowerCase();
+                const behaviorPoints = g.behaviorPoints.map(bp => bp.toLowerCase());
+                
+                return (behavior.includes('cannot turn off') || behaviorPoints.some(bp => bp.includes('cannot turn off'))) ||
+                       (behavior.includes('cannot directly turn off') || behaviorPoints.some(bp => bp.includes('cannot directly turn off'))) ||
+                       (behavior.includes('cannot turn on') || behaviorPoints.some(bp => bp.includes('cannot turn on')));
+            });
+            
+            if (matchingGhosts.length > 0) {
+                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+                answer = `These ghosts have limitations with lights/breakers: ${ghostNames}. Jinn cannot directly turn off the breaker. Mare and Hantu cannot turn on lights/breakers.`;
+            }
+        }
+        // General light questions
+        else if (query.includes('light')) {
+            matchingGhosts = ghostData.filter(g => 
+                g.behavior.toLowerCase().includes('light') || g.behaviorPoints.some(bp => bp.toLowerCase().includes('light'))
+            );
+            if (matchingGhosts.length > 0) {
+                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+                answer = `These ghosts interact with lights: ${ghostNames}. Mare prefers turning off lights and cannot turn them on. Hantu is more likely to turn off the breaker.`;
+            }
+        }
+    }
+    
+    // SMUDGE QUESTIONS
+    else if (query.includes('smudge') || query.includes('incense')) {
+        if (query.includes('180') || query.includes('spirit')) {
+            matchingGhosts = ghostData.filter(g => 
+                g.behavior.toLowerCase().includes('180') && 
+                g.behavior.toLowerCase().includes('smudge')
+            );
+            answer = `Spirit waits 180 seconds after being smudged before hunting again.`;
+        } else if (query.includes('60') || query.includes('demon')) {
+            matchingGhosts = ghostData.filter(g => 
+                g.behavior.toLowerCase().includes('60') && 
+                g.behavior.toLowerCase().includes('smudge')
+            );
+            answer = `Demon can hunt only 60 seconds after being smudged.`;
+        }
+    }
+    
+    // EVIDENCE QUESTIONS
+    else if (query.includes('evidence') || query.includes('emf') || query.includes('spirit box') || query.includes('fingerprints') || 
+             query.includes('uv') || query.includes('writing') || query.includes('freezing') || query.includes('dots') || query.includes('orb')) {
+        if (query.includes('emf') || query.includes('emf 5')) {
+            matchingGhosts = ghostData.filter(g => g.evidence.includes('EMF 5'));
+            if (matchingGhosts.length > 0) {
+                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+                answer = `These ghosts have EMF 5 evidence: ${ghostNames}.`;
+            }
+        } else if (query.includes('spirit box') || query.includes('spiritbox')) {
+            matchingGhosts = ghostData.filter(g => g.evidence.includes('Spirit Box'));
+            if (matchingGhosts.length > 0) {
+                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+                answer = `These ghosts have Spirit Box evidence: ${ghostNames}.`;
+            }
+        } else if (query.includes('fingerprints') || query.includes('uv') || query.includes('ultraviolet')) {
+            matchingGhosts = ghostData.filter(g => g.evidence.includes('Ultraviolet'));
+            if (matchingGhosts.length > 0) {
+                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+                answer = `These ghosts have Ultraviolet evidence: ${ghostNames}.`;
+            }
+        } else if (query.includes('writing') || query.includes('book') || query.includes('ghost writing')) {
+            matchingGhosts = ghostData.filter(g => g.evidence.includes('Ghost Writing'));
+            if (matchingGhosts.length > 0) {
+                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+                answer = `These ghosts have Ghost Writing evidence: ${ghostNames}.`;
+            }
+        } else if (query.includes('freezing') || query.includes('temp') || query.includes('temperature')) {
+            matchingGhosts = ghostData.filter(g => g.evidence.includes('Freezing Temps'));
+            if (matchingGhosts.length > 0) {
+                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+                answer = `These ghosts have Freezing Temps evidence: ${ghostNames}.`;
+            }
+        } else if (query.includes('dots') || query.includes('projector')) {
+            matchingGhosts = ghostData.filter(g => g.evidence.includes('DOTS Projector'));
+            if (matchingGhosts.length > 0) {
+                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+                answer = `These ghosts have DOTS Projector evidence: ${ghostNames}.`;
+            }
+        } else if (query.includes('orb') || query.includes('orbs')) {
+            matchingGhosts = ghostData.filter(g => g.evidence.includes('Ghost Orbs'));
+            if (matchingGhosts.length > 0) {
+                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+                answer = `These ghosts have Ghost Orbs evidence: ${ghostNames}.`;
+            }
+        } else if (query.includes('evidence')) {
+            answer = `There are 7 types of evidence: EMF 5, Spirit Box, Ultraviolet (Fingerprints), Ghost Writing, Freezing Temps, DOTS Projector, and Ghost Orbs. Each ghost has 3 unique evidence types.`;
+        }
+    }
+    
+    // TELEPORT QUESTIONS
+    else if (query.includes('teleport')) {
+        matchingGhosts = ghostData.filter(g => 
+            g.behavior.toLowerCase().includes('teleport')
+        );
+        if (matchingGhosts.length > 0) {
+            const ghostNames = matchingGhosts.map(g => g.name).join(', ');
+            answer = `These ghosts have teleportation abilities: ${ghostNames}. Wraith can teleport to random players.`;
+        }
+    }
+    
+    // GHOST NAME SEARCH (fallback)
+    else {
+        matchingGhosts = ghostData.filter(g => 
+            g.name.toLowerCase().includes(query)
+        );
+        if (matchingGhosts.length > 0) {
+            answer = `Found ${matchingGhosts.length} ghost${matchingGhosts.length > 1 ? 's' : ''} matching "${query}"`;
+        }
+    }
+    
+    return { ghosts: matchingGhosts, answer: answer };
 }
 
 // ========================================
@@ -1025,7 +1359,7 @@ function getSpeedCategories(ghost) {
         categories.push('slow');
     } else if (ghost.speed === 1.7) {
         categories.push('normal');
-    } else {
+        } else {
         categories.push('fast');
     }
     
@@ -1128,7 +1462,7 @@ function getSpeedButtonsForGhost(ghost) {
             if (ghost.name === 'Deogen') return '3.0';
             if (ghost.name === 'Thaye') return '2.75';
             return '1.7';
-    } else {
+        } else {
             return '1.7';
         }
     };
@@ -1529,7 +1863,7 @@ function toggleTimer() {
     
     if (floatingTimer.classList.contains('hidden')) {
         floatingTimer.classList.remove('hidden');
-        } else {
+            } else {
         floatingTimer.classList.add('hidden');
         if (isTimerRunning) {
             floatingPauseTimer();
@@ -1605,7 +1939,7 @@ function updateFloatingButtons() {
     if (isTimerRunning) {
         startBtn.disabled = true;
         pauseBtn.disabled = false;
-            } else {
+    } else {
         startBtn.disabled = false;
         pauseBtn.disabled = true;
     }
