@@ -1606,11 +1606,32 @@ function playSpeedSound(ghostName, speedType) {
         speedMs = 1.7;
     }
     
-    // Calculate footstep interval based on speed
-    // The speed value IS the interval in seconds (e.g., 1.0 m/s = 1 footstep per second)
-    // So we just use the speed value directly as the interval
-    const interval = (1 / speedMs) * 1000; // convert to milliseconds
-    // Example: 1.0 m/s = 1000ms interval, 1.7 m/s = 588ms interval, 3.0 m/s = 333ms interval
+      // Mathematical approach: Piecewise linear interpolation between verified points
+      // Verified: 1.0 m/s = 64 BPM, 1.5 m/s = 99 BPM, 1.7 m/s = 119 BPM, 2.5 m/s = 186 BPM, 3.0 m/s = 234 BPM
+      let targetBPM;
+      if (speedMs <= 1.5) {
+          // Linear between 1.0 m/s (64 BPM) and 1.5 m/s (99 BPM)
+          // Slope = (99 - 64) / (1.5 - 1.0) = 35 / 0.5 = 70
+          targetBPM = 64 + (speedMs - 1.0) * 70;
+      } else if (speedMs <= 1.7) {
+          // Linear between 1.5 m/s (99 BPM) and 1.7 m/s (119 BPM)
+          // Slope = (119 - 99) / (1.7 - 1.5) = 20 / 0.2 = 100
+          targetBPM = 99 + (speedMs - 1.5) * 100;
+      } else if (speedMs <= 2.5) {
+          // Linear between 1.7 m/s (119 BPM) and 2.5 m/s (186 BPM)
+          // Slope = (186 - 119) / (2.5 - 1.7) = 67 / 0.8 = 83.75
+          targetBPM = 119 + (speedMs - 1.7) * 83.75;
+      } else {
+          // Linear between 2.5 m/s (186 BPM) and 3.0 m/s (234 BPM)
+          // Slope = (234 - 186) / (3.0 - 2.5) = 48 / 0.5 = 96
+          targetBPM = 186 + (speedMs - 2.5) * 96;
+      }
+      
+      const interval = (60 / targetBPM) * 1000; // Convert BPM to milliseconds
+      
+      // Examples: 
+      // 1.0 m/s = 64 BPM = 938ms, 1.5 m/s = 99 BPM = 606ms, 1.7 m/s = 119 BPM = 504ms
+      // 2.5 m/s = 186 BPM = 323ms, 3.0 m/s = 234 BPM = 256ms
     
     console.log(`Playing ${ghostName} at ${speedType} speed: ${speedMs} m/s (interval: ${interval.toFixed(0)}ms)`);
     

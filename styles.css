@@ -1297,8 +1297,8 @@ body {
    MINIMIZED TIMER
    ======================================== */
 .minimized-timer {
-    position: fixed;
-    left: 20px;
+        position: fixed;
+        left: 20px;
     top: 50%;
     transform: translateY(-50%);
     z-index: 9999;
@@ -1334,7 +1334,7 @@ body {
 }
 
 .minimized-time {
-    font-size: 2rem;
+        font-size: 2rem;
     font-weight: 800;
     font-family: 'Inter', monospace;
     color: var(--accent-success);
@@ -1381,7 +1381,7 @@ body {
    FLOATING TIMER OVERLAY
    ======================================== */
 .floating-timer {
-    position: fixed;
+        position: fixed;
     top: 80px;
     left: 50%;
     transform: translateX(-50%) translateY(-20px);
@@ -1465,7 +1465,7 @@ body {
 
 .floating-milestone {
     display: flex;
-    flex-direction: column;
+        flex-direction: column;
     align-items: center;
     padding: 0.75rem 1rem;
     background: rgba(255, 255, 255, 0.05);
