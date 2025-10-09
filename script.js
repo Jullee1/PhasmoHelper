@@ -888,7 +888,7 @@ function handleAISearch(query) {
     // Try to understand the question and find relevant ghosts
     const result = analyzeQuery(lowerQuery);
     
-    if (result.ghosts.length > 0) {
+    if (result.matchingGhosts.length > 0) {
         // Show answer box
         searchAnswerEl.style.display = 'block';
         searchAnswerEl.innerHTML = `
@@ -896,7 +896,7 @@ function handleAISearch(query) {
                 <strong>🤖 Answer:</strong> ${result.answer}
             </div>
             <div class="search-answer-ghosts">
-                ${result.ghosts.map(ghost => `
+                ${result.matchingGhosts.map(ghost => `
                     <div class="search-answer-ghost" onclick="selectGhost('${ghost.name}')">
                         ${ghost.name}
                     </div>
@@ -905,7 +905,7 @@ function handleAISearch(query) {
         `;
         
         // Filter ghost list to matching ghosts
-        renderGhostList(result.ghosts);
+        renderGhostList(result.matchingGhosts);
     } else {
         // No matches found
         searchAnswerEl.style.display = 'block';
@@ -913,8 +913,9 @@ function handleAISearch(query) {
             <div class="search-answer-text">
                 <strong>🤖 Answer:</strong> I couldn't find any ghosts matching that query. Try asking about:
                 <br>• <strong>Evidence:</strong> "EMF 5", "Spirit Box", "Ultraviolet", "Ghost Writing", "Freezing Temps", "DOTS", "Ghost Orbs"
-                <br>• <strong>Speed:</strong> "Fast ghosts", "Slow ghosts", "3.0 m/s", "Variable speed"
-                <br>• <strong>Behavior:</strong> "Turn off lights", "Close doors", "Salt interaction", "Teleport"
+                <br>• <strong>Speed:</strong> "Fast ghosts", "Slow ghosts", "Variable speed", "3.0 m/s"
+                <br>• <strong>Complex behavior:</strong> "Walk slow but speed up when seeing you", "Variable speed based on temperature", "Speed changes with sanity"
+                <br>• <strong>Specific mechanics:</strong> "Turn off lights", "Close doors", "Salt interaction", "Teleport", "Distance-based speed"
                 <br>• <strong>Hunt timing:</strong> "Early hunt", "Late hunt", "Any sanity"
                 <br>• <strong>Smudge timing:</strong> "180 seconds", "60 seconds", "90 seconds"
                 <br>• Or just search by <strong>ghost name</strong>!
@@ -927,272 +928,250 @@ function handleAISearch(query) {
 function analyzeQuery(query) {
     let matchingGhosts = [];
     let answer = '';
+    const lowerQuery = query.toLowerCase();
     
-    // BREAKER QUESTIONS
-    if (query.includes('cannot') || query.includes("can't") || query.includes('can not')) {
-        if (query.includes('turn off') && query.includes('breaker')) {
-            matchingGhosts = ghostData.filter(g => 
-                g.behavior.toLowerCase().includes('cannot') && 
-                g.behavior.toLowerCase().includes('breaker')
-            );
-            answer = `Jinn cannot turn off the breaker. Hantu cannot turn ON the breaker.`;
-        } else if (query.includes('turn on') && query.includes('breaker')) {
-            matchingGhosts = ghostData.filter(g => 
-                g.behavior.toLowerCase().includes('cannot turn on the breaker')
-            );
-            answer = `Hantu cannot turn on the breaker.`;
-        } else if (query.includes('light') || query.includes('lights')) {
-            matchingGhosts = ghostData.filter(g => 
-                g.behavior.toLowerCase().includes('cannot') && 
-                g.behavior.toLowerCase().includes('light')
-            );
-            answer = `Mare cannot turn on lights. Onryo cannot light fire sources.`;
-        }
-    }
+    // SIMPLE KEYWORD-BASED APPROACH - Much more reliable!
+    const keywordMatches = {
+        // Age-related questions
+        'age': ['Thaye'],
+        'aging': ['Thaye'],
+        'older': ['Thaye'],
+        'slower': ['Thaye', 'Revenant'],
+        'overtime': ['Thaye'],
+        'ages overtime': ['Thaye'],
+        'gets slower': ['Thaye'],
+        'slower overtime': ['Thaye'],
+        
+        // Salt questions
+        'salt': ['Wraith'],
+        'step salt': ['Wraith'],
+        'touch salt': ['Wraith'],
+        'cannot salt': ['Wraith'],
+        'cant salt': ['Wraith'],
+        'step in salt': ['Wraith'],
+        'cannot step salt': ['Wraith'],
+        'cant step salt': ['Wraith'],
+        'cannot step in salt': ['Wraith'],
+        'cant step in salt': ['Wraith'],
+        
+        // Speed questions
+        'fast': ['Revenant', 'Jinn', 'Hantu', 'Raiju', 'Moroi', 'Deogen', 'Thaye'],
+        'slow': ['Revenant', 'Hantu', 'The Twins', 'Moroi', 'Deogen', 'Thaye'],
+        'variable speed': ['Revenant', 'Hantu', 'The Twins', 'Moroi', 'Deogen', 'Thaye'],
+        '3.0': ['Revenant', 'Deogen'],
+        'speeds up': ['Revenant', 'Jinn'],
+        'normal speed': ['Jinn'],
+        
+        // Door questions
+        'door': ['Yurei'],
+        'close door': ['Yurei'],
+        'shut door': ['Yurei'],
+        
+        // Teleport questions
+        'teleport': ['Wraith'],
+        
+        // Light questions
+        'light': ['Mare', 'Hantu'],
+        'turn off': ['Mare', 'Hantu'],
+        'breaker': ['Jinn', 'Hantu'],
+        
+        // Hunt questions
+        'early hunt': ['Demon', 'Moroi'],
+        'any sanity': ['Demon', 'Moroi'],
+        
+        // Smudge questions
+        'smudge': ['Spirit', 'Demon'],
+        '180': ['Spirit'],
+        '60': ['Demon'],
+        
+        // Evidence questions
+        'emf': ['Spirit', 'Wraith', 'Jinn', 'Shade', 'Oni', 'Goryo', 'Myling', 'The Twins', 'Raiju', 'Obake'],
+        'spirit box': ['Spirit', 'Wraith', 'Phantom', 'Poltergeist', 'Mare', 'Yokai', 'Onryo', 'The Twins', 'The Mimic', 'Moroi', 'Deogen'],
+        'ultraviolet': ['Phantom', 'Poltergeist', 'Banshee', 'Jinn', 'Demon', 'Hantu', 'Goryo', 'Myling', 'Obake', 'The Mimic'],
+        'ghost writing': ['Spirit', 'Poltergeist', 'Mare', 'Revenant', 'Shade', 'Demon', 'Myling', 'Moroi', 'Deogen', 'Thaye'],
+        'freezing': ['Jinn', 'Revenant', 'Shade', 'Demon', 'Yurei', 'Oni', 'Hantu', 'Onryo', 'The Twins', 'The Mimic', 'Moroi'],
+        'dots': ['Wraith', 'Phantom', 'Banshee', 'Yurei', 'Oni', 'Yokai', 'Goryo', 'Raiju', 'Deogen', 'Thaye'],
+        'ghost orb': ['Banshee', 'Mare', 'Revenant', 'Yurei', 'Yokai', 'Hantu', 'Onryo', 'Raiju', 'Obake', 'The Mimic', 'Thaye'],
+        
+        // Complex behaviors
+        'temperature': ['Hantu'],
+        'cold': ['Hantu'],
+        'warm': ['Hantu'],
+        'sanity': ['Moroi', 'Raiju'],
+        'distance': ['Deogen', 'Jinn'],
+        'close': ['Deogen'],
+        'far': ['Deogen'],
+        'electronics': ['Raiju', 'Jinn'],
+        'unique scream': ['Banshee'],
+        'throw objects': ['Poltergeist'],
+        'flame': ['Onryo'],
+        'fire': ['Onryo'],
+        'quiet': ['Myling'],
+        'hearing': ['Yokai', 'Myling'],
+        'visible': ['Oni'],
+        'blink': ['Oni'],
+        'model change': ['Obake'],
+        'shadow': ['Shade'],
+        'shy': ['Shade'],
+        'room': ['Shade', 'Goryo'],
+        'mimic': ['The Mimic'],
+        'ghost orbs': ['The Mimic']
+    };
     
-    // SALT QUESTIONS
-    else if (query.includes('salt')) {
-        if (query.includes('not') || query.includes('no') || query.includes("doesn't") || query.includes('dont')) {
-            matchingGhosts = ghostData.filter(g => 
-                g.behavior.toLowerCase().includes('salt') && 
-                (g.behavior.toLowerCase().includes('will not') || g.behavior.toLowerCase().includes('does not'))
-            );
-            answer = `Wraith will not touch or interact with salt in any way.`;
-        }
-    }
-    
-    // SPEED QUESTIONS
-    else if (query.includes('fast') || query.includes('speed') || query.includes('slow') || query.includes('quick') || query.includes('hunt speed')) {
-        if (query.includes('fastest') || query.includes('very fast') || query.includes('3.0')) {
-            // Find ghosts that can reach the highest speeds
-            matchingGhosts = ghostData.filter(g => {
-                const behavior = g.behavior.toLowerCase();
-                const behaviorPoints = g.behaviorPoints.map(bp => bp.toLowerCase());
-                const special = g.speedDetails?.special?.toLowerCase() || '';
-                
-                return behavior.includes('3.0') || special.includes('3.0') ||
-                       behaviorPoints.some(bp => bp.includes('3.0'));
-            });
-            if (matchingGhosts.length > 0) {
-                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-                answer = `The fastest ghosts can reach 3.0 m/s: ${ghostNames}. Revenant (3.0 m/s when chasing), Deogen (3.0 m/s when far from target).`;
+    // SIMPLE SEARCH FUNCTION
+    function findMatchingGhosts(queryWords) {
+        const matches = [];
+        for (const word of queryWords) {
+            if (keywordMatches[word]) {
+                matches.push(...keywordMatches[word]);
             }
-        } else if (query.includes('fast') || query.includes('quick') || query.includes('2.5') || query.includes('2.7')) {
-            // Find ghosts that can reach fast speeds
-            matchingGhosts = ghostData.filter(g => {
-                const behavior = g.behavior.toLowerCase();
-                const behaviorPoints = g.behaviorPoints.map(bp => bp.toLowerCase());
-                const special = g.speedDetails?.special?.toLowerCase() || '';
-                
-                return behavior.includes('2.5') || behavior.includes('2.7') || behavior.includes('2.75') || 
-                       behavior.includes('3.0') || special.includes('2.5') || special.includes('2.7') || 
-                       special.includes('2.75') || special.includes('3.0') ||
-                       behaviorPoints.some(bp => bp.includes('2.5') || bp.includes('2.7') || bp.includes('2.75') || bp.includes('3.0'));
-            });
-            if (matchingGhosts.length > 0) {
-                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-                answer = `These ghosts can reach fast speeds: ${ghostNames}. Revenant (3.0 m/s), Hantu (2.7 m/s), Jinn (2.5 m/s), Raiju (2.5 m/s), Moroi (2.25 m/s), Thaye (2.75 m/s), Deogen (3.0 m/s).`;
-            }
-        } else if (query.includes('slow') || query.includes('1.0') || query.includes('1.5') || query.includes('1.4') || query.includes('0.4')) {
-            // Find ghosts that can move slow
-            matchingGhosts = ghostData.filter(g => {
-                const behavior = g.behavior.toLowerCase();
-                const behaviorPoints = g.behaviorPoints.map(bp => bp.toLowerCase());
-                const special = g.speedDetails?.special?.toLowerCase() || '';
-                
-                return behavior.includes('1.0') || behavior.includes('1.5') || behavior.includes('1.4') || 
-                       behavior.includes('0.4') || special.includes('1.0') || special.includes('1.5') || 
-                       special.includes('1.4') || special.includes('0.4') ||
-                       behaviorPoints.some(bp => bp.includes('1.0') || bp.includes('1.5') || bp.includes('1.4') || bp.includes('0.4'));
-            });
-            if (matchingGhosts.length > 0) {
-                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-                answer = `These ghosts can move slowly: ${ghostNames}. Revenant (1.0 m/s when not chasing), Hantu (1.4 m/s when warm), The Twins (1.5 m/s main), Moroi (1.5 m/s at high sanity), Deogen (0.4 m/s when close), Thaye (1.0 m/s when aged).`;
-            }
-        } else {
-            // General speed question
-            answer = `Ghost speeds vary: Normal ghosts move at 1.7 m/s. Variable speed ghosts include Revenant (1.0-3.0 m/s), Hantu (1.4-2.7 m/s), The Twins (1.5-1.9 m/s), Moroi (1.5-2.25 m/s), Deogen (0.4-3.0 m/s), and Thaye (1.0-2.75 m/s).`;
         }
-    }
-    
-    // HUNT SANITY QUESTIONS
-    else if (query.includes('hunt') && (query.includes('early') || query.includes('high sanity') || query.includes('higher') || query.includes('above'))) {
-        matchingGhosts = ghostData.filter(g => g.huntSanity >= 60);
-        if (matchingGhosts.length > 0) {
-            const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-            answer = `These ghosts can hunt at higher sanity levels (60% or above): ${ghostNames}. Demon can hunt at any sanity level.`;
-        }
-    }
-    else if (query.includes('hunt') && (query.includes('low') || query.includes('late') || query.includes('below'))) {
-        matchingGhosts = ghostData.filter(g => g.huntSanity <= 40);
-        if (matchingGhosts.length > 0) {
-            const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-            answer = `These ghosts only hunt at lower sanity levels (40% or below): ${ghostNames}. Shade hunts at 35%, Revenant at 40%.`;
-        }
-    }
-    else if (query.includes('hunt') && query.includes('any') && query.includes('sanity')) {
-        matchingGhosts = ghostData.filter(g => g.huntSanity === 0 || g.behavior.toLowerCase().includes('any sanity'));
-        if (matchingGhosts.length > 0) {
-            const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-            answer = `These ghosts can hunt at any sanity level: ${ghostNames}. Demon and Moroi can hunt regardless of sanity.`;
-        }
+        // Remove duplicates
+        return [...new Set(matches)];
     }
     
-    // DOOR QUESTIONS
-    else if (query.includes('door') || (query.includes('close') && query.includes('fully'))) {
-        if (query.includes('close') || query.includes('shut') || query.includes('fully')) {
-            matchingGhosts = ghostData.filter(g => 
-                (g.behavior.toLowerCase().includes('door') || g.behaviorPoints.some(bp => bp.toLowerCase().includes('door'))) && 
-                (g.behavior.toLowerCase().includes('close') || g.behavior.toLowerCase().includes('shut') || g.behavior.toLowerCase().includes('fully'))
-            );
-            answer = `Yurei is the only ghost that can close exit doors outside of hunts.`;
-        }
+    // SIMPLE KEYWORD MATCHING - Much more reliable and user-friendly!
+    // Clean the query: remove punctuation, extra spaces, and normalize
+    const cleanQuery = lowerQuery
+        .replace(/[?!.,;:]/g, '') // Remove punctuation
+        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+        .trim();
+    
+    const queryWords = cleanQuery.split(' ').filter(word => word.length > 2);
+    
+    // Check for specific phrase matches first (using clean query)
+    if (cleanQuery.includes('ages overtime') || cleanQuery.includes('gets slower overtime')) {
+        matchingGhosts = keywordMatches['ages overtime'];
+        answer = `Ghosts that age/get slower over time: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('slower') && cleanQuery.includes('older')) {
+        matchingGhosts = ['Thaye'];
+        answer = `Ghosts that get slower as they get older: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('cannot step salt') || cleanQuery.includes('cant step salt') || 
+             cleanQuery.includes('can not step salt') || cleanQuery.includes('cant step in salt') ||
+             cleanQuery.includes('cannot step in salt')) {
+        matchingGhosts = ['Wraith'];
+        answer = `Ghosts that can't step in salt: ${matchingGhosts.join(', ')}. Click below to learn more!`;
     }
     
-    // LIGHT/BREAKER QUESTIONS
-    else if (query.includes('light') || query.includes('breaker') || query.includes('turn') || query.includes('switch')) {
-        if (query.includes('turn') && query.includes('off')) {
-            // Ghosts that CAN turn off lights/breakers (exclude those that CANNOT)
-            matchingGhosts = ghostData.filter(g => {
-                const behavior = g.behavior.toLowerCase();
-                const behaviorPoints = g.behaviorPoints.map(bp => bp.toLowerCase());
-                
-                // Check if ghost CAN turn off (not cannot)
-                const canTurnOff = (behavior.includes('prefers turning off') || behaviorPoints.some(bp => bp.includes('prefers turning off'))) ||
-                                  (behavior.includes('more likely to turn off') || behaviorPoints.some(bp => bp.includes('more likely to turn off'))) ||
-                                  (behavior.includes('can immediately turn off') || behaviorPoints.some(bp => bp.includes('can immediately turn off')));
-                
-                // Exclude ghosts that CANNOT turn off
-                const cannotTurnOff = (behavior.includes('cannot turn off') || behaviorPoints.some(bp => bp.includes('cannot turn off'))) ||
-                                     (behavior.includes('cannot directly turn off') || behaviorPoints.some(bp => bp.includes('cannot directly turn off')));
-                
-                return canTurnOff && !cannotTurnOff;
-            });
-            
-            if (matchingGhosts.length > 0) {
-                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-                answer = `These ghosts can turn off lights or breakers: ${ghostNames}. Mare prefers turning off lights and light switches. Hantu is more likely to turn off the breaker.`;
-    } else {
-                answer = `Most ghosts can turn off lights, but Mare prefers turning off lights and light switches, while Hantu is more likely to turn off the breaker.`;
-            }
-        }
-        // Ghosts that CANNOT turn off lights/breakers
-        else if (query.includes('cannot') || query.includes('not') || query.includes('unable')) {
-            matchingGhosts = ghostData.filter(g => {
-                const behavior = g.behavior.toLowerCase();
-                const behaviorPoints = g.behaviorPoints.map(bp => bp.toLowerCase());
-                
-                return (behavior.includes('cannot turn off') || behaviorPoints.some(bp => bp.includes('cannot turn off'))) ||
-                       (behavior.includes('cannot directly turn off') || behaviorPoints.some(bp => bp.includes('cannot directly turn off'))) ||
-                       (behavior.includes('cannot turn on') || behaviorPoints.some(bp => bp.includes('cannot turn on')));
-            });
-            
-            if (matchingGhosts.length > 0) {
-                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-                answer = `These ghosts have limitations with lights/breakers: ${ghostNames}. Jinn cannot directly turn off the breaker. Mare and Hantu cannot turn on lights/breakers.`;
-            }
-        }
-        // General light questions
-        else if (query.includes('light')) {
-            matchingGhosts = ghostData.filter(g => 
-                g.behavior.toLowerCase().includes('light') || g.behaviorPoints.some(bp => bp.toLowerCase().includes('light'))
-            );
-            if (matchingGhosts.length > 0) {
-                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-                answer = `These ghosts interact with lights: ${ghostNames}. Mare prefers turning off lights and cannot turn them on. Hantu is more likely to turn off the breaker.`;
-            }
-        }
+    // EVIDENCE SEARCHES
+    else if (cleanQuery.includes('emf') || cleanQuery.includes('emf 5')) {
+        matchingGhosts = keywordMatches['emf'];
+        answer = `Ghosts with EMF 5 evidence: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('spirit box')) {
+        matchingGhosts = keywordMatches['spirit box'];
+        answer = `Ghosts with Spirit Box evidence: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('ultraviolet') || cleanQuery.includes('fingerprint')) {
+        matchingGhosts = keywordMatches['ultraviolet'];
+        answer = `Ghosts with Ultraviolet evidence: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('ghost writing')) {
+        matchingGhosts = keywordMatches['ghost writing'];
+        answer = `Ghosts with Ghost Writing evidence: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('freezing') || cleanQuery.includes('temp')) {
+        matchingGhosts = keywordMatches['freezing'];
+        answer = `Ghosts with Freezing Temps evidence: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('dots')) {
+        matchingGhosts = keywordMatches['dots'];
+        answer = `Ghosts with DOTS Projector evidence: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('ghost orb')) {
+        matchingGhosts = keywordMatches['ghost orb'];
+        answer = `Ghosts with Ghost Orbs evidence: ${matchingGhosts.join(', ')}. Click below to learn more!`;
     }
     
-    // SMUDGE QUESTIONS
-    else if (query.includes('smudge') || query.includes('incense')) {
-        if (query.includes('180') || query.includes('spirit')) {
-            matchingGhosts = ghostData.filter(g => 
-                g.behavior.toLowerCase().includes('180') && 
-                g.behavior.toLowerCase().includes('smudge')
-            );
-            answer = `Spirit waits 180 seconds after being smudged before hunting again.`;
-        } else if (query.includes('60') || query.includes('demon')) {
-            matchingGhosts = ghostData.filter(g => 
-                g.behavior.toLowerCase().includes('60') && 
-                g.behavior.toLowerCase().includes('smudge')
-            );
-            answer = `Demon can hunt only 60 seconds after being smudged.`;
-        }
+    // SPEED SEARCHES
+    else if (cleanQuery.includes('fastest') || cleanQuery.includes('3.0')) {
+        matchingGhosts = keywordMatches['3.0'];
+        answer = `The fastest ghosts can reach 3.0 m/s: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('fast')) {
+        matchingGhosts = keywordMatches['fast'];
+        answer = `These ghosts can reach fast speeds: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('slow')) {
+        matchingGhosts = keywordMatches['slow'];
+        answer = `These ghosts can move slowly: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('variable speed')) {
+        matchingGhosts = keywordMatches['variable speed'];
+        answer = `Variable speed ghosts: ${matchingGhosts.join(', ')}. Click below to learn more!`;
     }
     
-    // EVIDENCE QUESTIONS
-    else if (query.includes('evidence') || query.includes('emf') || query.includes('spirit box') || query.includes('fingerprints') || 
-             query.includes('uv') || query.includes('writing') || query.includes('freezing') || query.includes('dots') || query.includes('orb')) {
-        if (query.includes('emf') || query.includes('emf 5')) {
-            matchingGhosts = ghostData.filter(g => g.evidence.includes('EMF 5'));
-            if (matchingGhosts.length > 0) {
-                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-                answer = `These ghosts have EMF 5 evidence: ${ghostNames}.`;
-            }
-        } else if (query.includes('spirit box') || query.includes('spiritbox')) {
-            matchingGhosts = ghostData.filter(g => g.evidence.includes('Spirit Box'));
-            if (matchingGhosts.length > 0) {
-                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-                answer = `These ghosts have Spirit Box evidence: ${ghostNames}.`;
-            }
-        } else if (query.includes('fingerprints') || query.includes('uv') || query.includes('ultraviolet')) {
-            matchingGhosts = ghostData.filter(g => g.evidence.includes('Ultraviolet'));
-            if (matchingGhosts.length > 0) {
-                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-                answer = `These ghosts have Ultraviolet evidence: ${ghostNames}.`;
-            }
-        } else if (query.includes('writing') || query.includes('book') || query.includes('ghost writing')) {
-            matchingGhosts = ghostData.filter(g => g.evidence.includes('Ghost Writing'));
-            if (matchingGhosts.length > 0) {
-                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-                answer = `These ghosts have Ghost Writing evidence: ${ghostNames}.`;
-            }
-        } else if (query.includes('freezing') || query.includes('temp') || query.includes('temperature')) {
-            matchingGhosts = ghostData.filter(g => g.evidence.includes('Freezing Temps'));
-            if (matchingGhosts.length > 0) {
-                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-                answer = `These ghosts have Freezing Temps evidence: ${ghostNames}.`;
-            }
-        } else if (query.includes('dots') || query.includes('projector')) {
-            matchingGhosts = ghostData.filter(g => g.evidence.includes('DOTS Projector'));
-            if (matchingGhosts.length > 0) {
-                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-                answer = `These ghosts have DOTS Projector evidence: ${ghostNames}.`;
-            }
-        } else if (query.includes('orb') || query.includes('orbs')) {
-            matchingGhosts = ghostData.filter(g => g.evidence.includes('Ghost Orbs'));
-            if (matchingGhosts.length > 0) {
-                const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-                answer = `These ghosts have Ghost Orbs evidence: ${ghostNames}.`;
-            }
-        } else if (query.includes('evidence')) {
-            answer = `There are 7 types of evidence: EMF 5, Spirit Box, Ultraviolet (Fingerprints), Ghost Writing, Freezing Temps, DOTS Projector, and Ghost Orbs. Each ghost has 3 unique evidence types.`;
-        }
+    // BEHAVIOR SEARCHES
+    else if (cleanQuery.includes('door') && (cleanQuery.includes('close') || cleanQuery.includes('shut'))) {
+        matchingGhosts = keywordMatches['close door'];
+        answer = `Ghosts that can close doors: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('teleport')) {
+        matchingGhosts = keywordMatches['teleport'];
+        answer = `Ghosts with teleport abilities: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('light') && (cleanQuery.includes('turn') || cleanQuery.includes('off'))) {
+        matchingGhosts = keywordMatches['turn off'];
+        answer = `Ghosts that interact with lights: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('hunt') && (cleanQuery.includes('early') || cleanQuery.includes('any'))) {
+        matchingGhosts = keywordMatches['early hunt'];
+        answer = `Ghosts that can hunt early/at any sanity: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('smudge') && cleanQuery.includes('180')) {
+        matchingGhosts = keywordMatches['180'];
+        answer = `Ghosts with extended smudge timer (180s): ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('smudge') && cleanQuery.includes('60')) {
+        matchingGhosts = keywordMatches['60'];
+        answer = `Ghosts with shortened smudge timer (60s): ${matchingGhosts.join(', ')}. Click below to learn more!`;
     }
     
-    // TELEPORT QUESTIONS
-    else if (query.includes('teleport')) {
-        matchingGhosts = ghostData.filter(g => 
-            g.behavior.toLowerCase().includes('teleport')
-        );
-        if (matchingGhosts.length > 0) {
-            const ghostNames = matchingGhosts.map(g => g.name).join(', ');
-            answer = `These ghosts have teleportation abilities: ${ghostNames}. Wraith can teleport to random players.`;
-        }
+    // COMPLEX BEHAVIOR SEARCHES
+    else if (cleanQuery.includes('speeds up') && (cleanQuery.includes('see') || cleanQuery.includes('sight'))) {
+        matchingGhosts = keywordMatches['speeds up'];
+        answer = `Ghosts that speed up when they see you: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('temperature') && cleanQuery.includes('speed')) {
+        matchingGhosts = keywordMatches['temperature'];
+        answer = `Temperature-based speed ghosts: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('sanity') && cleanQuery.includes('speed')) {
+        matchingGhosts = keywordMatches['sanity'];
+        answer = `Sanity-based speed ghosts: ${matchingGhosts.join(', ')}. Click below to learn more!`;
+    }
+    else if (cleanQuery.includes('distance') && cleanQuery.includes('speed')) {
+        matchingGhosts = keywordMatches['distance'];
+        answer = `Distance-based speed ghosts: ${matchingGhosts.join(', ')}. Click below to learn more!`;
     }
     
-    // GHOST NAME SEARCH (fallback)
+    // GENERAL KEYWORD SEARCH
     else {
-        matchingGhosts = ghostData.filter(g => 
-            g.name.toLowerCase().includes(query)
-        );
+        // Try to find any ghost that matches keywords
+        matchingGhosts = findMatchingGhosts(queryWords);
+        
         if (matchingGhosts.length > 0) {
-            answer = `Found ${matchingGhosts.length} ghost${matchingGhosts.length > 1 ? 's' : ''} matching "${query}"`;
+            answer = `Found ghosts matching your query: ${matchingGhosts.join(', ')}. Click below to learn more!`;
         }
     }
     
-    return { ghosts: matchingGhosts, answer: answer };
+    // If still no answer, provide helpful suggestions
+    if (!answer) {
+        answer = `I couldn't find any ghosts matching that query. Try asking about:
+        
+        **Evidence:** "EMF 5", "Spirit Box", "Ultraviolet", "Ghost Writing", "Freezing Temps", "DOTS", "Ghost Orbs"
+        **Speed:** "Fast ghosts", "Slow ghosts", "Variable speed", "3.0 m/s"
+        **Behaviors:** "Salt interaction", "Close doors", "Teleport", "Turn off lights", "Get slower over time"
+        **Complex mechanics:** "Speed up when seeing you", "Temperature-based speed", "Distance-based speed"
+        **Hunt timing:** "Early hunt", "Late hunt", "Any sanity"
+        **Smudge timing:** "180 seconds", "60 seconds", "90 seconds"
+        
+        Or just search by ghost name!`;
+    }
+    
+    return { matchingGhosts: matchingGhosts.map(name => ghostData.find(g => g.name === name)).filter(Boolean), answer };
 }
 
 // ========================================
